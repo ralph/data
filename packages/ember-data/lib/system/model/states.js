@@ -330,6 +330,7 @@ var DirtyState = DS.State.extend({
     },
 
     didChangeData: didChangeData,
+    loadedData: didChangeData,
 
     becameInvalid: function(manager, errors) {
       var record = get(manager, 'record');
