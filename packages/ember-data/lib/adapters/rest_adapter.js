@@ -141,6 +141,10 @@ DS.RESTAdapter = DS.Adapter.extend({
     }, this);
   },
 
+  shouldPreserveDirtyRecords: function(association) {
+    return association.kind === 'hasMany';
+  },
+
   createRecords: function(store, type, records) {
     var adapter = this;
 

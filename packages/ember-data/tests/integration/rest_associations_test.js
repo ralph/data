@@ -91,6 +91,9 @@ test("creating a parent and child in the same commit", function() {
   equal(commentsRequest.url, "/comments", "The comment is created second");
   equal(requestData.comment.person_id, 1, "The submitted comment attributes include the person_id");
 
+  deepEqual(person.get('comments').toArray(), [ comment ], "The person has the comment");
+  equal(comment.get('person'), person, "The comment belongs to the person");
+
   Ember.run(function() {
     commentsRequest.success({
       comments: [{ id: 2, person_id: 1 }]
@@ -103,6 +106,9 @@ test("creating a parent and child in the same commit", function() {
 
     expectStates([person, comment], 'saving', false);
     expectStates([person, comment], 'error', false);
+
+    deepEqual(person.get('comments').toArray(), [ comment ], "The person has the comment");
+    equal(comment.get('person'), person, "The comment belongs to the person");
   });
 });
 
@@ -141,6 +147,9 @@ test("creating a parent and updating a child in the same commit", function() {
   equal(commentsRequest.url, "/comments/2", "The comment is updated second");
   equal(commentData.comment.person_id, 1, "The submitted comment attributes include the person_id");
 
+  deepEqual(person.get('comments').toArray(), [ comment ], "The person has the comment");
+  equal(comment.get('person'), person, "The comment belongs to the person");
+
   Ember.run(function() {
     commentsRequest.success({});
   });
@@ -151,5 +160,8 @@ test("creating a parent and updating a child in the same commit", function() {
 
     expectStates([person, comment], 'saving', false);
     expectStates([person, comment], 'error', false);
+
+    deepEqual(person.get('comments').toArray(), [ comment ], "The person has the comment");
+    equal(comment.get('person'), person, "The comment belongs to the person");
   });
 });

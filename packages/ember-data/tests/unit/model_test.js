@@ -1,6 +1,6 @@
 var get = Ember.get, set = Ember.set;
 
-var Person, store, array;
+var Person, Comment, store, adapter, array;
 
 var testSerializer = DS.JSONSerializer.create({
   primaryKey: function() {
@@ -9,7 +9,8 @@ var testSerializer = DS.JSONSerializer.create({
 });
 
 var TestAdapter = DS.Adapter.extend({
-  serializer: testSerializer
+  serializer: testSerializer,
+  updateRecord: Ember.K
 });
 
 module("DS.Model", {
@@ -385,4 +386,72 @@ test("ensure model exits loading state, materializes data and fulfills promise o
   equal(get(person, 'stateManager.currentState.path'), 'rootState.loaded.saved', 'model is in loaded state');
   equal(get(person, 'isLoaded'), true, 'model is loaded');
   equal(get(person, '_deferred.promise.isFulfilled'), true, 'model is fulfilled');
+});
+
+module("DS.Model Materialization", {
+  setup: function() {
+    adapter = TestAdapter.create();
+    store = DS.Store.create({
+      adapter: adapter
+    });
+
+    Person = DS.Model.extend();
+    Comment = DS.Model.extend();
+
+    Person.reopen({
+      comments: DS.hasMany(Comment)
+    });
+    Comment.reopen({
+      person: DS.belongsTo(Person)
+    });
+  },
+
+  teardown: function() {
+    store = null;
+  }
+});
+
+test("materialization may optionally preserve dirty children", function() {
+  var transaction, person, cleanComment, dirtyComment;
+
+  transaction = store.transaction();
+
+  store.load(Person, { id: 1, comments: [ 1 ] });
+  store.load(Comment, { id: 1, person: 1 });
+  store.load(Comment, { id: 2 });
+
+  cleanComment = store.find(Comment, 1);
+  ok(!cleanComment.get('isDirty'), "The existing child is not dirty");
+
+  person = store.find(Person, 1);
+
+  transaction.add(person);
+
+  dirtyComment = store.find(Comment, 2);
+  person.get('comments').addObject(dirtyComment);
+  ok(dirtyComment.get('isDirty'), "The new child is dirty");
+
+  deepEqual(person.get('comments').toArray(), [ cleanComment, dirtyComment ], "Parent has 2 children");
+
+  transaction.commit();
+
+  // when preserving dirty records
+  adapter.shouldPreserveDirtyRecords = function(association) {
+    return association.kind === 'hasMany';
+  };
+
+  store.load(Person, { id: 1, comments: [] });
+
+  ok(dirtyComment.get('isDirty'), "The new child is still dirty");
+  deepEqual(person.get('comments').toArray(), [ dirtyComment ], "Parent has only the dirty child");
+
+  // when not preserving dirty records
+  adapter.shouldPreserveDirtyRecords = function(association) {
+    return false;
+  };
+
+  store.load(Person, { id: 1, comments: [] });
+
+  ok(dirtyComment.get('isDirty'), "The new child is still dirty");
+  deepEqual(person.get('comments').toArray(), [], "Parent has no children");
 });
