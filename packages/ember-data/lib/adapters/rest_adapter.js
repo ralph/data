@@ -400,8 +400,9 @@ function waitForParents(record, callback, context) {
 
   record.eachRelationship(function(name, meta) {
     var association = get(record, name);
+    var embeddedType = context.get('serializer').embeddedType(meta.parentType, name);
 
-    if (meta.kind === 'belongsTo' && association && get(association, 'isNew')) {
+    if (embeddedType !== 'always' && meta.kind === 'belongsTo' && association && get(association, 'isNew')) {
       var observer = function() {
         association.removeObserver('id', context, observer);
         observers.remove(name);
